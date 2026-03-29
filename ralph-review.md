@@ -18,7 +18,9 @@ If issues were found, spawn one Agent per issue (or per closely-related group of
 Launch independent fix agents in parallel when the fixes don't overlap in the same code regions. Launch them sequentially if they touch the same lines.
 
 ### Step 3: Loop
-After all fix agents complete, start the next cycle (back to Step 1). If the analysis subagent reports no major issues, the review is complete — fix any remaining minor issues but don't cycle again.
+After all fix agents complete, start the next cycle (back to Step 1).
+
+**Stopping condition:** The review is complete only when a cycle finds no major issues AND no fixes were applied during that cycle. This means the final cycle must be a completely read-only pass with zero changes. Even if the previous cycle only fixed minor issues, you must run one more cycle to verify those fixes didn't introduce new problems. If the analysis finds only minor issues, fix them — then loop again for a clean read-only verification pass.
 
 ## Output format
 
