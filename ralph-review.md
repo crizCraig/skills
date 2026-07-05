@@ -7,18 +7,40 @@ You are performing an iterative deep review of the current git changes. Your goa
 
 ## Process
 
+### Step 0: Snapshot commit (once, before the first cycle)
+Record the review baseline: `BASE=$(git rev-parse HEAD)`. Then, if there are any
+uncommitted changes (staged or unstaged), commit them all with a normal
+descriptive commit message — **no** `[ralph-review]` prefix, since this is the
+user's work, not the review's. If the tree is already clean when invoked, set
+`BASE` to `HEAD~1` instead, so the review covers the most recent commit.
+
+This way the user's work is preserved as-is, and every subsequent fix lands as
+its own clearly-marked commit.
+
 For each cycle (up to 10):
 
 ### Step 1: Analyze changes in a subagent
-Spawn an Agent to run `git diff` (unstaged and staged), review all changed code for bugs and code smells, and return a structured list of issues found. Each issue should include a description, severity (major/minor), and the file path(s) and line numbers involved. This keeps the diff out of the main agent's context.
+Spawn an Agent to run `git diff $BASE` (which covers the snapshot commit plus any fixes so far), review all changed code for bugs and code smells, and return a structured list of issues found. Each issue should include a description, severity (major/minor), and the file path(s) and line numbers involved. This keeps the diff out of the main agent's context.
 
 ### Step 2: Fix issues with subagents
 If issues were found, spawn one Agent per issue (or per closely-related group of issues) to fix them. Each agent should receive a clear description of the specific bug or smell and the file path(s) and line numbers involved.
 
 Launch independent fix agents in parallel when the fixes don't overlap in the same code regions. Launch them sequentially if they touch the same lines.
 
-### Step 3: Loop
-After all fix agents complete, start the next cycle (back to Step 1).
+### Step 3: Commit the cycle's fixes
+If any fixes were applied this cycle, commit them with a message starting with
+`[ralph-review]`, e.g. `[ralph-review] cycle N: fix <short summary of issues>`.
+Thanks to the Step 0 snapshot, these commits contain only the review's fixes,
+cleanly separated from the user's work.
+
+### Step 4: Loop
+Start the next cycle (back to Step 1).
+
+### Step 5: Marker commit (after the loop ends)
+Every run must leave a `[ralph-review]` commit so
+`git log --grep='\[ralph-review\]'` shows when ralph-review last ran. If no fix
+commits were made during the entire run, make an empty marker commit:
+`git commit --allow-empty -m "[ralph-review] clean review, no issues (M cycles)"`.
 
 **Stopping condition:** The review is complete only when a cycle finds no major issues AND no fixes were applied during that cycle. This means the final cycle must be a completely read-only pass with zero changes. Even if the previous cycle only fixed minor issues, you must run one more cycle to verify those fixes didn't introduce new problems. If the analysis finds only minor issues, fix them — then loop again for a clean read-only verification pass.
 
