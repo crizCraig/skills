@@ -52,14 +52,14 @@ At the start of each cycle, print:
 ## Review cycle N/10
 ```
 
-At the end of each cycle, print a brief summary of issues found and fixes applied. When the review is done (either clean or 10 cycles exhausted), print a final summary:
+At the end of each cycle, print the issues found and fixes applied, broken down by severity (e.g. "2 major, 3 minor"). For each issue, give a detailed explanation — not a one-line summary: what the defect is, the concrete failure scenario (inputs/state → wrong behavior), and what the fix changed. Write it so a reader who hasn't seen the diff or the subagent reports understands each bug and its consequences. When the review is done (either clean or 10 cycles exhausted), print a final summary:
 
 ```
 ## Ralph review complete
 - Cycles: N
-- Issues found: X
-- Issues fixed: Y
-- Remaining issues: Z (if any, list them)
+- Issues found: X (A major, B minor)
+- Issues fixed: Y (C major, D minor)
+- Remaining issues: Z (if any, list them with severity)
 ```
 
 ## Important rules
