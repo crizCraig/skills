@@ -42,7 +42,7 @@ Every run must leave a `[ralph-review]` commit so
 commits were made during the entire run, make an empty marker commit:
 `git commit --allow-empty -m "[ralph-review] clean review, no issues (M cycles)"`.
 
-**Stopping condition:** The review is complete only when a cycle finds no major issues AND no fixes were applied during that cycle. This means the final cycle must be a completely read-only pass with zero changes. Even if the previous cycle only fixed minor issues, you must run one more cycle to verify those fixes didn't introduce new problems. If the analysis finds only minor issues, fix them — then loop again for a clean read-only verification pass.
+**Stopping condition:** If you are Fable (model id `claude-fable-*`), keep going until a cycle finds no major or minor issues at all — fix everything found along the way. Otherwise, keep going until a cycle finds no major issues; in a cycle where only minor issues are found, don't fix them — list them as remaining issues and stop.
 
 ## Output format
 
