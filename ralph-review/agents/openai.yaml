@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ralph Review"
+  short_description: "Iterative review-and-fix loop for Git changes"
+  default_prompt: "Use $ralph-review to iteratively review and fix the current Git changes."
+policy:
+  allow_implicit_invocation: false
