@@ -1,7 +1,14 @@
 # skills
 
 Personal skills library, consumed by two different CLIs that expect two
-different layouts:
+different layouts.
+
+## Index
+
+| Skill | What it does |
+| --- | --- |
+| `ralph-review` | Iterative in-session review-and-fix loop over the current Git changes. |
+| [`agent-bus-review`](agent-bus-review/SKILL.md) | Implement -> independent reviewer (Codex CLI) -> fix -> quick-final re-check loop, coordinated through a file-based agent bus; scripts, prompt templates and a bus template included. |
 
 ## Claude Code — flat `<name>.md`
 
@@ -54,3 +61,17 @@ For `ralph-review`, both formats currently exist side by side
 (`ralph-review.md` for Claude Code, `ralph-review/` for Codex) and are
 maintained independently — edits to one do NOT propagate to the other.
 Keep both in sync by hand when changing the skill's behavior.
+
+## agent-bus-review
+
+A single folder (`agent-bus-review/`) used by both CLIs; no separate flat file.
+Install by symlinking the folder:
+
+```bash
+mkdir -p ~/.claude/skills ~/.agents/skills
+ln -s "$PWD/agent-bus-review" ~/.claude/skills/agent-bus-review   # Claude Code
+ln -s "$PWD/agent-bus-review" ~/.agents/skills/agent-bus-review   # Codex
+```
+
+Then create the bus once from `agent-bus-review/bus-template/` (see the skill's
+Setup section). Scripts need bash, `codex`, and optionally `fswatch`/`inotifywait`.
