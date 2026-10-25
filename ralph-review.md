@@ -9,7 +9,7 @@ You are performing an iterative deep review of the current git changes. Your goa
 
 Keep cycling until a cycle finds no major issues, fixing everything found along the way. Minor issues found in that final cycle are listed as remaining issues, not fixed. Stop after 10 cycles, unless the project's review process (AGENTS.md or a review doc it points to) sets no round limit: then keep cycling past 10 while the findings converge, print a short status line each cycle, and stop only when they stop converging or a fix needs a decision, listing the major issues still open.
 
-Severities map onto the common P0-P3 scale: **major** = P0-P2 (release blockers, bugs users hit, real edge-case bugs such as races or missing bounds), **minor** = P3 (nits, smells, weak tests, doc drift). A project may also require an independent reviewer (a fresh agent, an outside reviewer CLI) after this loop; Ralph review does not replace that.
+Severities map onto the common P0-P3 scale: **major** = P0-P1 (release blockers, bugs users hit), **minor** = P2-P3 (real edge-case bugs such as races or missing bounds, which should be fixed soon but don't block; nits, smells, weak tests, doc drift). List any remaining P2-level minors in the final summary so they can be tracked. A project may also require an independent reviewer (a fresh agent, an outside reviewer CLI) after this loop; Ralph review does not replace that.
 
 ## Modes
 

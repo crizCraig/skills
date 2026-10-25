@@ -5,7 +5,7 @@ description: Orchestrate implement -> independent review -> fix -> quick-final r
 
 You are the **orchestrator**. You delegate implementation to subagents, get every change
 reviewed by an independent reviewer agent that cannot modify the code, feed its findings
-back to the implementer, and repeat until the reviewer reports nothing at P0-P2. Humans
+back to the implementer, and repeat until the reviewer reports nothing at P0/P1. Humans
 approve production deploys (or a deploy gate that checks the review records does).
 
 Scripts referenced below live in this skill's `scripts/` folder; templates in `templates/`;
@@ -16,7 +16,9 @@ a ready-to-copy bus layout in `bus-template/`.
 The generic process (a project's own review doc, if it has one, takes precedence):
 
 - **Every change before merge:** a fresh in-harness reviewer (a new agent with none of the
-  implementer's context), then the outside reviewer (Codex), each until no P0-P2.
+  implementer's context), then the outside reviewer (Codex), each until no P0/P1. Open
+  P2s don't block but are listed (in the review record, if the project keeps one, and the
+  report) and fixed soon after.
 - **Merge review** after a rebase or merge onto a main that moved, or of a branch combining
   separately reviewed branches: the combined diff, conflict resolutions and interactions.
   Independent branches (different files, no shared behaviour) need only the test gates.
@@ -125,11 +127,12 @@ scripts/start-review.sh cycle<N>.md <thread> [reviewer-name]
 
 Pass the **original** prompt (not the composed one; the footer is re-added). The header
 scopes the run to "verify the fixes, report only NEW or REMAINING P0-P2, say the head you
-reviewed". Repeat steps 3-5 until the reviewer reports no P0-P2 and `VERDICT: SHIP`.
+reviewed". Repeat steps 3-5 until the reviewer reports no P0/P1 and `VERDICT: SHIP`
+(fix the P2s it reports too when the fix is cheap and safe).
 
 **No round limit.** Keep cycling while the findings converge; on long loops post a short
 status (phase, what is still open). Stop and ask the human only when the findings stop
-converging or a fix needs a decision, and say which P0-P2 remain open.
+converging or a fix needs a decision, and say which P0/P1 (and P2s) remain open.
 
 Each follow-up prompt lists the earlier rounds' findings files, what each fix changed, and
 what not to re-raise (accepted residuals, policies the human already settled).
@@ -142,7 +145,7 @@ what not to re-raise (accepted residuals, policies the human already settled).
 3. Rebased onto a moved main, or combined branches: run a merge review of the result
    (steps 2-5) before going further.
 4. Before production: a whole-release review (deployed commit..release commit) until no
-   P0-P2.
+   P0/P1; list its open P2s with the release.
 5. Deploy to **staging**; smoke-check the changed paths.
 6. A **human** runs the production deploy, or an agent through a deploy mode that verifies
    the recorded reviews itself.
@@ -170,15 +173,15 @@ VERDICT: <SHIP | NO-SHIP>
 ```
 
 Open findings are list items opening with a bold severity; don't list already-fixed items
-that way. The last line is exactly `VERDICT: SHIP` (no open P0-P2) or `VERDICT: NO-SHIP`.
+that way. The last line is exactly `VERDICT: SHIP` (no open P0/P1) or `VERDICT: NO-SHIP`.
 
 Severities:
 
 - **P0** - exploitable now or data loss/corruption; stop everything.
-- **P1** - security/isolation/correctness bug a user can hit; blocks merge.
+- **P1** - security/isolation/correctness bug a user can hit; blocks merge and release.
 - **P2** - real bug in an edge case, cache/race issue, clock skew, missing bound, rollback
-  hazard; blocks merge and release (a SHIP that still lists a P2 doesn't count; deferring
-  one is a human decision).
+  hazard; fix soon, but doesn't block: a SHIP may list open P2s, and they are tracked (the
+  review record or release notes list their titles).
 - **P3** - smell, missing or weak test, doc drift; optional: fix if cheap, else leave a
   one-line note.
 
@@ -207,8 +210,9 @@ See `bus-template/threads/example-review/` for a sample thread.
   before a re-check, or the reviewer reads stale code.
 - **Report the gates yourself.** A sandboxed reviewer may not be able to listen on
   localhost, so socket tests fail for it (`listen EPERM`); give it your counts.
-- **Ask for the verdict on the last line.** Prompts that defined P2 as "not blocking" or
-  put the verdict first produced SHIPs with open P2s that a gate rejects.
+- **Ask for the verdict on the last line,** and spell out the scale in the prompt (P0/P1
+  block, so NO-SHIP; P2 fix soon, doesn't block). Prompts that put the verdict first or left
+  the scale implicit produced verdicts a gate couldn't read.
 - **Keep run output out of the thread folder** so watchers only wake on messages.
 - **Quick finals stay quick.** Re-check scope is the fixes plus anything they touch; a full
   re-review is a new cycle with a new prompt.
