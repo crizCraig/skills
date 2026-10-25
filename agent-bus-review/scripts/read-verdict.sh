@@ -35,7 +35,8 @@ echo "== $(basename "$newest")"
 awk 'NF == 0 { exit } { print }' "$newest"
 echo
 echo "== readiness"
-grep -iE 'merge readiness|ready for|not ready|readiness:' "$newest" | head -3 || echo "(none)"
+grep -iE 'merge readiness|ready for|not ready|readiness:|^[[:space:]*#>_]*VERDICT' "$newest" \
+  | head -4 || echo "(none)"
 echo
 echo "== findings"
 grep -E '^[[:space:]]*([-*]|[0-9]+\.)?[[:space:]]*(\*\*)?P[0-3]([^0-9]|$)' "$newest" \

@@ -81,7 +81,8 @@ final=$run_dir/$stamp-$reviewer.final.md
     "$bus_dir" "$reviewer" "$thread_dir"
   printf '%s\n' "Post exactly one message (kind: findings): findings P0-P3 (file:line," \
     "evidence or repro, proposed fix), verification you ran, merge readiness, and the exact" \
-    "head you reviewed. Update your STATUS.md line. End your final answer with the same summary."
+    "head you reviewed. Update your STATUS.md line. End your final answer with the same summary" \
+    "and, as its last line, exactly VERDICT: SHIP (no open P0-P2) or VERDICT: NO-SHIP."
 } > "$composed"
 
 nohup "$codex_bin" exec -C "$review_root" --skip-git-repo-check \

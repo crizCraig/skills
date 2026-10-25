@@ -23,3 +23,5 @@ Verification: app boot with tests 412 passed / 0 failed; JS tests 37/37; contain
 the test gate passed; DB checks on scratch Postgres passed (container removed).
 
 Summary: not ready - 1 P1 (cross-account export), 1 P2 (cached failure), 1 P3. Head `abc1234`.
+
+VERDICT: NO-SHIP

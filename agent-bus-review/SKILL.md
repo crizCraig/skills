@@ -1,22 +1,30 @@
 ---
 name: agent-bus-review
-description: Orchestrate implement -> independent review -> fix -> quick-final re-check cycles on a feature branch, with an outside reviewer agent (Codex CLI) that reports P0-P3 findings through a shared file-based "agent bus". Use when the user asks for an independent/Codex review of a branch, a review-fix loop before merge, or to set up the agent bus. Launches background processes and pushes feature branches; never merges or deploys without a human.
+description: Orchestrate implement -> independent review -> fix -> quick-final re-check cycles on a feature branch, with an outside reviewer agent (Codex CLI) that reports P0-P3 findings through a shared file-based "agent bus". Use when the user asks for an independent/Codex review of a branch, a merge or release review, a review-fix loop before merge, or to set up the agent bus. Launches background processes and pushes feature branches; merges only where project policy allows and never deploys to production without a human or a machine-checked review gate.
 ---
 
 You are the **orchestrator**. You delegate implementation to subagents, get every change
 reviewed by an independent reviewer agent that cannot modify the code, feed its findings
 back to the implementer, and repeat until the reviewer reports nothing at P0-P2. Humans
-approve merges and deploys.
+approve production deploys (or a deploy gate that checks the review records does).
 
 Scripts referenced below live in this skill's `scripts/` folder; templates in `templates/`;
 a ready-to-copy bus layout in `bus-template/`.
 
 ## When to use
 
-- Any change touching security, data isolation, money, deletion, auth, or migrations.
-- Any merge where conflicts were resolved by hand in security-relevant code (give the merge
-  its own integration review, even if both branches were reviewed separately).
-- Before staging/production for anything non-trivial.
+The generic process (a project's own review doc, if it has one, takes precedence):
+
+- **Every change before merge:** a fresh in-harness reviewer (a new agent with none of the
+  implementer's context), then the outside reviewer (Codex), each until no P0-P2.
+- **Merge review** after a rebase or merge onto a main that moved, or of a branch combining
+  separately reviewed branches: the combined diff, conflict resolutions and interactions.
+  Independent branches (different files, no shared behaviour) need only the test gates.
+- **Whole-release review** before every production deploy or package release: the combined
+  diff from what is deployed (or the last published tag) to the commit being shipped,
+  focused on interactions. Branches reviewed one at a time still need it: each review saw
+  only its own diff.
+- Text-only changes that can't affect production: one fresh reviewer for accuracy is enough.
 
 ## Setup (once per machine)
 
@@ -81,8 +89,16 @@ The prompt must include:
   credentials. Production reads, if any, are read-only and bounded
   (`SET statement_timeout`, `LIMIT`) - heavy agent queries can load production.
 
-Wait on the PID the script prints (`while kill -0 $PID 2>/dev/null; do sleep 30; done`)
-or on the thread watcher. Do the next independent task meanwhile.
+Wait on the PID the script prints (`while kill -0 $PID 2>/dev/null; do sleep 30; done`),
+your harness's background-task notification, or the thread watcher. Do the next
+independent task meanwhile. Never kill or restart other reviewer processes: other sessions'
+reviews may be running in parallel.
+
+**Recorded reviews (optional).** A project can wrap the reviewer in a runner that pins the
+exact range in the prompt header, binds prompt, range and output by hash in a manifest, and
+on SHIP writes a record a deploy gate checks (e.g. `reviews/<repo>/<base>..<head>.json` on
+the bus). polychat's `review_runner` is one implementation. When a project has one, use it
+for every review that must count; a review run by hand can't be recorded afterwards.
 
 ### 3. Read the verdict
 
@@ -109,16 +125,27 @@ scripts/start-review.sh cycle<N>.md <thread> [reviewer-name]
 
 Pass the **original** prompt (not the composed one; the footer is re-added). The header
 scopes the run to "verify the fixes, report only NEW or REMAINING P0-P2, say the head you
-reviewed". Repeat steps 3-5 until the reviewer reports no P0-P2 and "ready".
+reviewed". Repeat steps 3-5 until the reviewer reports no P0-P2 and `VERDICT: SHIP`.
+
+**No round limit.** Keep cycling while the findings converge; on long loops post a short
+status (phase, what is still open). Stop and ask the human only when the findings stop
+converging or a fix needs a decision, and say which P0-P2 remain open.
+
+Each follow-up prompt lists the earlier rounds' findings files, what each fix changed, and
+what not to re-raise (accepted residuals, policies the human already settled).
 
 ### 6. Release
 
-1. Human approves the merge.
+1. Merge per project policy: where main isn't auto-deployed, agents may merge reviewed,
+   gated work; otherwise a human approves the merge.
 2. Merge to main in a separate **release worktree**; rerun all gates there.
-3. Hand-resolved conflicts in security-relevant code: run an integration review of the merge
-   commit (steps 2-5) before going further.
-4. Deploy to **staging**; smoke-check the changed paths.
-5. A **human** runs the production deploy.
+3. Rebased onto a moved main, or combined branches: run a merge review of the result
+   (steps 2-5) before going further.
+4. Before production: a whole-release review (deployed commit..release commit) until no
+   P0-P2.
+5. Deploy to **staging**; smoke-check the changed paths.
+6. A **human** runs the production deploy, or an agent through a deploy mode that verifies
+   the recorded reviews itself.
 
 ## Finding format
 
@@ -132,21 +159,28 @@ kind: findings
 
 Merge readiness: **<ready | not ready>**. Reviewed `<base>...HEAD` at `<sha>`.
 
-- **P<n> - <one-line title>.** `<file>:<line>` <what is wrong>. Evidence/repro: <steps or
-  scratch test under /tmp>. Proposed fix: <concrete change + the test to add>.
+1. **P<n> - <one-line title>.** `<file>:<line>` <what is wrong>. Evidence/repro: <steps or
+   scratch test under /tmp>. Proposed fix: <concrete change + the test to add>.
 
 Verification: <each gate with counts>.
 
 Summary: <readiness, counts per severity, head reviewed>.
+
+VERDICT: <SHIP | NO-SHIP>
 ```
+
+Open findings are list items opening with a bold severity; don't list already-fixed items
+that way. The last line is exactly `VERDICT: SHIP` (no open P0-P2) or `VERDICT: NO-SHIP`.
 
 Severities:
 
 - **P0** - exploitable now or data loss/corruption; stop everything.
 - **P1** - security/isolation/correctness bug a user can hit; blocks merge.
-- **P2** - real bug in an edge case, cache/race issue, missing bound; blocks merge unless the
-  human defers it.
-- **P3** - smell, missing test, doc drift; fix if cheap, may be deferred.
+- **P2** - real bug in an edge case, cache/race issue, clock skew, missing bound, rollback
+  hazard; blocks merge and release (a SHIP that still lists a P2 doesn't count; deferring
+  one is a human decision).
+- **P3** - smell, missing or weak test, doc drift; optional: fix if cheap, else leave a
+  one-line note.
 
 See `bus-template/threads/example-review/` for a sample thread.
 
@@ -156,8 +190,8 @@ See `bus-template/threads/example-review/` for a sample thread.
 - Ask the human for anything that changes user-visible behaviour, pricing, privacy,
   retention/deletion, or has more than one reasonable answer. Record their decision in the
   next review prompt under "decisions already made".
-- Humans approve merges and production deploys. Agents may deploy to staging when the task
-  says so.
+- Humans approve production deploys (or a gate that checks recorded reviews does); merges
+  follow project policy. Agents may deploy to staging when the task says so.
 - Reviewers never modify the reviewed code; implementers never self-certify.
 
 ## Lessons learned
@@ -169,7 +203,12 @@ See `bus-template/threads/example-review/` for a sample thread.
 - **Bound production reads.** `statement_timeout` and `LIMIT` on every read-only query; a
   reviewer exploring production data can load it.
 - **Pin the head.** Give the reviewer the exact SHA and require it to state the head it
-  reviewed; a review of a moving branch is not a review.
+  reviewed; a review of a moving branch is not a review. Move the worktree to the new head
+  before a re-check, or the reviewer reads stale code.
+- **Report the gates yourself.** A sandboxed reviewer may not be able to listen on
+  localhost, so socket tests fail for it (`listen EPERM`); give it your counts.
+- **Ask for the verdict on the last line.** Prompts that defined P2 as "not blocking" or
+  put the verdict first produced SHIPs with open P2s that a gate rejects.
 - **Keep run output out of the thread folder** so watchers only wake on messages.
 - **Quick finals stay quick.** Re-check scope is the fixes plus anything they touch; a full
   re-review is a new cycle with a new prompt.
