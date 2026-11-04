@@ -133,6 +133,8 @@ reviewed". Repeat steps 3-5 until the reviewer reports no P0/P1 and `VERDICT: SH
 **No round limit.** Keep cycling while the findings converge; on long loops post a short
 status (phase, what is still open). Stop and ask the human only when the findings stop
 converging or a fix needs a decision, and say which P0/P1 (and P2s) remain open.
+No limit on rounds is not the same as silence: past 3 rounds the human is told before
+production (see Policy).
 
 Each follow-up prompt lists the earlier rounds' findings files, what each fix changed, and
 what not to re-raise (accepted residuals, policies the human already settled).
