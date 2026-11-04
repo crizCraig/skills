@@ -196,6 +196,10 @@ See `bus-template/threads/example-review/` for a sample thread.
 - Humans approve production deploys (or a gate that checks recorded reviews does); merges
   follow project policy. Agents may deploy to staging when the task says so.
 - Reviewers never modify the reviewed code; implementers never self-certify.
+- More than 3 review rounds (every reviewer counted together, merge reviews included) means
+  the human hears about it before production: the change, the round count, what kept
+  recurring, and whether a different high-level approach would remove the churn. Long loops
+  usually mean the approach is wrong. Merge and staging can proceed; production waits.
 
 ## Lessons learned
 
