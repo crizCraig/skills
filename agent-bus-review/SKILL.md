@@ -60,6 +60,9 @@ The generic process (a project's own review doc, if it has one, takes precedence
     is the image that passed),
   - DB checks against a scratch Postgres in Docker (created and removed by the check),
     never a shared database.
+  - Build gate containers for the machine's native architecture. An emulated build (e.g.
+    amd64 on Apple silicon) is several times slower; leave the deploy architecture to the
+    deploy build or CI, and say so when a change is architecture-specific.
 - The implementer commits and pushes the **feature branch** only.
 
 ### 2. Launch the independent review
@@ -139,6 +142,10 @@ production (see Policy).
 Each follow-up prompt lists the earlier rounds' findings files, what each fix changed, and
 what not to re-raise (accepted residuals, policies the human already settled).
 
+Name the round that found each fix in its commit subject, e.g. `... (review r2)` for the
+in-harness reviewer and `... (codex r3 P2)` for the outside one, so the history shows how
+long a change took to converge. A merge review's prompt says what the earlier reviews covered.
+
 ### 6. Release
 
 1. Merge per project policy: where main isn't auto-deployed, agents may merge reviewed,
@@ -186,6 +193,13 @@ Severities:
   review record or release notes list their titles).
 - **P3** - smell, missing or weak test, doc drift; optional: fix if cheap, else leave a
   one-line note.
+
+Examples from real reviews: P0, ownership of a shared block changed after validation, so a
+live record's data was deleted; P1, a fallback and the original both billed in full, or a
+download holding a pooled DB connection so four requests exhaust the pool; P2, two concurrent
+calls both charge because each read the latest row before either committed; P3, a test that
+bypasses the real selection logic. Reviewers on a major/minor scale: major = P0/P1, minor =
+P2/P3.
 
 See `bus-template/threads/example-review/` for a sample thread.
 
