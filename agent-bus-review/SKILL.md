@@ -103,7 +103,24 @@ reviews may be running in parallel.
 exact range in the prompt header, binds prompt, range and output by hash in a manifest, and
 on SHIP writes a record a deploy gate checks (e.g. `reviews/<repo>/<base>..<head>.json` on
 the bus). polychat's `review_runner` is one implementation. When a project has one, use it
-for every review that must count; a review run by hand can't be recorded afterwards.
+for every review that must count.
+
+**What a deploy gate should check.** Before a production deploy, the gate reads the review
+records and refuses unless all of these hold:
+
+- **The exact range.** The reviews cover exactly what ships: the deployed commit to the
+  release commit. Either one recorded review of that range by the required outside reviewer,
+  or a chain of recorded reviews that adds up to it (a release review, then merge reviews of
+  what landed on top). Separate per-commit reviews don't add up to a release review.
+- **Unchanged evidence.** A manifest pins the review's prompt and output by hash, and both
+  are unchanged since the review was recorded.
+- **Bound to the range.** The prompt names both commits, and the review was written after
+  the head commit, so a SHIP for other code can't be reused.
+- **A clean verdict.** The last line is the SHIP verdict, and every other verdict line agrees.
+  A review that quotes an earlier round's NO-SHIP is blocked.
+- **No open P0/P1.** Open P2s are allowed, but the gate prints each one at deploy time.
+- **Only runner reviews count.** A record counts only if the runner's manifest for that
+  review is present and matches, so a review run by hand can't be recorded afterwards.
 
 ### 3. Read the verdict
 

@@ -9,6 +9,8 @@ You are performing an iterative deep review of the current git changes. Your goa
 
 Keep cycling until a cycle finds no major issues, fixing everything found along the way. Minor issues found in that final cycle are listed as remaining issues, not fixed. Stop after 10 cycles regardless.
 
+Note: Ralph review doesn't count toward a deploy gate that checks recorded reviews (see agent-bus-review, "What a deploy gate should check").
+
 **Long reviews go to the user before production.** If a change needed more than 3 review cycles (or rounds, counting every reviewer together), tell the user before it is deployed to production: the change, the cycle count, what kept coming up, and whether a different high-level approach would remove the churn (a simpler design, an existing library, moving the responsibility to another layer). A long loop usually means the approach is wrong rather than that more fixes are needed. Merging and staging can go ahead; the production deploy waits until the user has been told. Put this in the final summary too.
 
 ## Modes
