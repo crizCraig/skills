@@ -153,8 +153,8 @@ reviewed". Repeat steps 3-5 until the reviewer reports no P0/P1 and `VERDICT: SH
 **No round limit.** Keep cycling while the findings converge; on long loops post a short
 status (phase, what is still open). Stop and ask the human only when the findings stop
 converging or a fix needs a decision, and say which P0/P1 (and P2s) remain open.
-No limit on rounds is not the same as silence: past 3 rounds the human is told before
-production (see Policy).
+No limit on rounds is not the same as silence: a fragile or non-converging change is
+reported to the human before production (see Policy).
 
 Each follow-up prompt lists the earlier rounds' findings files, what each fix changed, and
 what not to re-raise (accepted residuals, policies the human already settled).
@@ -229,10 +229,18 @@ See `bus-template/threads/example-review/` for a sample thread.
 - Humans approve production deploys (or a gate that checks recorded reviews does); merges
   follow project policy. Agents may deploy to staging when the task says so.
 - Reviewers never modify the reviewed code; implementers never self-certify.
-- More than 3 review rounds (every reviewer counted together, merge reviews included) means
-  the human hears about it before production: the change, the round count, what kept
-  recurring, and whether a different high-level approach would remove the churn. Long loops
-  usually mean the approach is wrong. Merge and staging can proceed; production waits.
+- Tell the human before production (rounds counted across every reviewer, merge reviews
+  included) when any of these holds:
+  - a P0 or P1 finding appears after round 2 (the change was more fragile than it looked);
+  - the same theme of finding recurs across 3 or more rounds (not converging). Rounds whose
+    only findings are P2s in code added since the previous round (scope grew) don't count;
+  - more than 6 rounds in total, whatever the findings (backstop).
+
+  Say the change, the round count, what kept recurring, and whether a different high-level
+  approach would remove the churn: loops that don't converge usually mean the approach is
+  wrong. Merge and staging can proceed; production waits. Reports state the round count and
+  themes either way. (A plain round count alerted on normal work: changes that converged
+  with only minor findings left often take 4-5 rounds.)
 
 ## Lessons learned
 

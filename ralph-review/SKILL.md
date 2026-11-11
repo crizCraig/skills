@@ -11,7 +11,7 @@ Keep cycling until a cycle finds no major issues, fixing everything found along 
 
 Note: Ralph review doesn't count toward a deploy gate that checks recorded reviews (see agent-bus-review, "What a deploy gate should check").
 
-**Long reviews go to the user before production.** If a change needed more than 3 review cycles (or rounds, counting every reviewer together), tell the user before it is deployed to production: the change, the cycle count, what kept coming up, and whether a different high-level approach would remove the churn (a simpler design, an existing library, moving the responsibility to another layer). A long loop usually means the approach is wrong rather than that more fixes are needed. Merging and staging can go ahead; the production deploy waits until the user has been told. Put this in the final summary too.
+**Fragile or non-converging reviews go to the user before production.** Counting cycles (or rounds) across every reviewer together, tell the user before the change is deployed to production when any of these holds: a major (P0/P1) finding appears after cycle 2; the same theme of finding recurs across 3 or more cycles (cycles whose only findings are minor ones in code added since the previous cycle don't count); or more than 6 cycles in total. Say the change, the cycle count, what kept coming up, and whether a different high-level approach would remove the churn (a simpler design, an existing library, moving the responsibility to another layer). A loop that doesn't converge usually means the approach is wrong rather than that more fixes are needed. Merging and staging can go ahead; the production deploy waits until the user has been told. Put this in the final summary too.
 
 ## Modes
 
